@@ -10,73 +10,83 @@ const arr = [
     "From the ashes of despair, she rose like a phoenix, her spirit ablaze with determination and her eyes shining with the light of a thousand suns, ready to conquer the world with the fire of her passion.",
     "In the twilight hours, when the world was bathed in shadows and the stars whispered secrets to the night, she stood on the threshold of possibility, ready to embrace the unknown with open arms."
 ];
-let [second, minute, hour] = [0, 0, 0];
-const stopwatch = document.querySelector(".timer");
+
+let second = 60;
+const timerDisplay = document.querySelector(".timer");
 let interval; // Declare interval variable outside of the function
 const sampleBox = document.querySelector(".text");
 const writingBox = document.querySelector(".write");
 const resetButton = document.querySelector(".reset");
+let displayWpm = document.querySelector('#display_wpm');
+let game_active = false;
+const mismatchSound = new Audio('mismatch_sound.mp3'); // Adjust the file path accordingly
+const successSound = new Audio('success_sound.mp3'); // Adjust the file path accordingly
 
 function check(val) {
     const textContainer = document.querySelector('.text');
     textContainer.innerHTML = ''; // Clear previous content
+    const sentenceLength = val.length;
+    let charactersTyped = 0;
+    let wordsTyped = 0;
+    let startTime = 0;
+    let endTime = 0;
 
-    for (let i = 0; i < val.length; i++) {
+    for (let i = 0; i < sentenceLength; i++) {
         const charSpan = document.createElement('span');
         charSpan.textContent = val[i];
         textContainer.appendChild(charSpan);
     }
 
-    function stop_watch() {
-        second++;
-        if (second == 60) {
-            minute++;
-            second = 0;
-        }
-        if (minute == 60) {
-            hour++;
-            minute = 0;
-        }
-        stopwatch.innerHTML = (hour < 10 ? "0" + hour : hour) + ":" +
-            (minute < 10 ? "0" + minute : minute) + ":" +
-            (second < 10 ? "0" + second : second);
+    function countdown() {
+        second--;
+        timerDisplay.innerHTML = (second < 10 ? "0" + second : second);
     }
 
     writingBox.addEventListener('input', function(event) {
-        if (second === 0 && minute === 0 && hour === 0) {
-            interval = setInterval(stop_watch, 1000);
+        if (!game_active) {
+            game_active = true;
+            interval = setInterval(countdown, 1000);
+            startTime = Date.now();
         }
 
         const inputValue = event.target.value;
+        charactersTyped = inputValue.length;
+        wordsTyped = inputValue.trim().split(/\s+/).length;
 
-        for (let i = 0; i < val.length; i++) {
+        for (let i = 0; i < sentenceLength; i++) {
             const charSpan = textContainer.children[i];
 
-            if (i < inputValue.length) {
+            if (i < charactersTyped) {
                 if (inputValue[i] === val[i]) {
                     charSpan.style.color = 'green';
                 } else {
                     charSpan.style.color = 'red';
+                    mismatchSound.play(); // Play the sound if there's a mismatch
                 }
             } else {
-                charSpan.style.color = ''; // Reset color if input value is shorter
+                charSpan.style.color = '';
             }
         }
-    });
 
+        if (charactersTyped === sentenceLength) {
+            clearInterval(interval);
+            endTime = Date.now();
+            displayWpm.value = Math.round((wordsTyped / ((endTime - startTime) / 60000)));
+            game_active = false;
+            successSound.play(); // Play success sound
+        }
+    });
 }
+
 function randomText() {
     const rand = Math.floor(Math.random() * 10);
     sampleBox.textContent = arr[rand];
     writingBox.value = "";
     clearInterval(interval); // Clear the interval before starting a new one
-    second = 0;
-    minute = 0;
-    hour = 0;
-    stopwatch.innerHTML = "00:00:00";
+    second = 60;
+    timerDisplay.innerHTML = "60";
     check(arr[rand]);
 }
-
 
 resetButton.addEventListener('click', randomText);
 
